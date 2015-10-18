@@ -1,5 +1,5 @@
 /**
- * Created by Serj on 17/10/2015.
+ * @author Serj
  */
 public class Evidence {
     private final String variable;

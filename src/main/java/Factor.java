@@ -1,7 +1,8 @@
 import java.util.*;
 
 /**
- * Created by Serj on 17/10/2015.
+ * @author Serj
+ * A class that embodies the concept of a factor in a Baysion Network.
  */
 public class Factor {
 
@@ -88,9 +89,6 @@ public class Factor {
     }
 
     public Factor productFactor(Factor secondFactor) {
-        if(getVariableNames().isEmpty()) {
-            return this;
-        }
 
         // generate combination of variables
         Set<String> randomVariablesBetweenTwo = new HashSet<String>();
@@ -117,9 +115,6 @@ public class Factor {
             combinationBooleans.add(booleanRow);
         }
 
-        System.out.println("Factor.productFactor : product 1: " + this);
-        System.out.println("Factor.productFactor : product 2: " + secondFactor);
-
         // multiply the booleans. n^2. go through all combination of rows in both table 1 and table 2. match
         // them to the corresponding row in the combination table, and set the value by multiplying them.
         List<Float> combinationFactors = new ArrayList<Float>(combinationBooleans.size());
@@ -132,7 +127,7 @@ public class Factor {
             List<Boolean> booleanRowTable1 = this.getBooleans().get(i);
             Float factor1 = this.getFactors().get(i);
             for(int j = 0; j < secondFactor.getBooleans().size(); j++) {
-                List<Boolean> booleanRowTable2 = this.getBooleans().get(j);
+                List<Boolean> booleanRowTable2 = secondFactor.getBooleans().get(j);
                 Float factor2 = secondFactor.getFactors().get(j);
 
                 // does this variable and value assignment match the one in BOTH
@@ -160,9 +155,6 @@ public class Factor {
                         if(!isRowToAddFactor) break;
 
                         for(int l = 0; l < booleanRowTable2.size(); l++) {
-                            System.out.println("Factor.productFactor : b" + booleanRowTable2);
-                            System.out.println("Factor.productFactor : v" + table2Variables);
-
                             Boolean table2Bool = booleanRowTable2.get(l);
                             String table2Variable = table2Variables.get(l);
 
@@ -224,17 +216,19 @@ public class Factor {
                             List<Evidence> evidenceList) {
 
         // restrict the factors in factorList using the evidence in evidenceList
-        List<Factor> restrictedFactorList = new ArrayList<Factor>();
         for(Evidence evidence : evidenceList) {
             String variable = evidence.getVariable();
             Boolean value = evidence.getValue();
 
-            for(Factor factor : factorList) {
+            for(int i = 0; i < factorList.size(); i++) {
+                Factor factor = factorList.get(i);
                 Factor restrictedFactor = factor.restrictFactor(variable, value);
-                restrictedFactorList.add(restrictedFactor);
+                factorList.set(i, restrictedFactor);
             }
         }
-        factorList = restrictedFactorList;
+        //factorList = restrictedFactorList;
+
+        //System.out.println("Factor.inference COMPLETE RESTRICTION: " + factorList);
 
         for(String hiddenVariable : orderedListOfHiddenVariables) {
             // compute the product of all the factors in factorList that contain this variable
@@ -246,9 +240,9 @@ public class Factor {
                 }
             }
             if(indexesOfFactorsToSum.isEmpty()) {
-                System.out.println("Is something wrong here?");
                 continue;
             }
+
             Factor factorBeingMultiplied = factorList.get(indexesOfFactorsToSum.get(0));
             for(int i = 1; i < indexesOfFactorsToSum.size(); i++) {
                 if(i >= indexesOfFactorsToSum.size()) break;
@@ -256,11 +250,10 @@ public class Factor {
                 factorBeingMultiplied = factorBeingMultiplied.productFactor(factorList.get(index));
             }
 
-            System.out.println("Factor.inference indexesSummed: " + indexesOfFactorsToSum);
-
             //remove all the factors we just took the product of from factorList
-            for(Integer index : indexesOfFactorsToSum) {
-                factorList.remove(index);
+            for(int i = indexesOfFactorsToSum.size()-1; i >= 0; i--) {
+                int indexToRemove = indexesOfFactorsToSum.get(i);
+                factorList.remove(indexToRemove);
             }
 
             // sum out the variable
@@ -268,11 +261,26 @@ public class Factor {
 
             // add the resulting factor back to factorList
             factorList.add(summedFactor);
+
+            System.out.println("===============================================");
+            System.out.println("Current set of factorList after elimination of variable: " + hiddenVariable + ".");
+            System.out.println(factorList);
+            System.out.println("===============================================");
+
+
         }
 
-        assert(factorList.size() == 1);
-        System.out.println("Factor.inference : " + factorList);
-        return factorList.get(0);
+        // product the remaining factors
+        Factor finalFactor = null;
+        if(!factorList.isEmpty()) {
+            finalFactor = factorList.get(0);
+            for (int i = 1; i < factorList.size(); i++) {
+                Factor remainingFactor = factorList.get(i);
+                finalFactor = finalFactor.productFactor(remainingFactor);
+            }
+        }
+
+        return finalFactor;
     }
 
     private boolean isVariableInFactor(String checkVariable) {
@@ -285,10 +293,16 @@ public class Factor {
 
     @Override
     public String toString() {
-        return "Factor{" +
-                "variableNames=" + variableNames +
-                ", booleans=" + booleans +
-                ", factors=" + factors +
-                '}';
+        String toReturn = "Factor{\n";
+        toReturn += "variableNames= ";
+        toReturn += variableNames;
+        toReturn += '\n';
+        for(int i = 0; i < booleans.size(); i++) {
+            List<Boolean> bools = booleans.get(i);
+            Float factor = factors.get(i);
+            toReturn += bools + " : " + factor + '\n';
+        }
+        toReturn += "}\n";
+        return toReturn;
     }
 }
