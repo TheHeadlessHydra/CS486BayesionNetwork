@@ -5,73 +5,75 @@ import java.util.*;
  */
 public class Factor {
 
-    private final List<String> variablenames;
-    private final List<List<Boolean>> factors;
-    private final List<Float> factorProbabilities;
+    private final List<String> variableNames;
+    private final List<List<Boolean>> booleans;
+    private final List<Float> factors;
 
-    Factor(List<String> variablenames,
-           List<List<Boolean>> factors,
-           List<Float> factorProbabilities) {
-        if(factors.size() != factorProbabilities.size()) {
-            throw new IllegalArgumentException("number of probabilities and number of boolean combinations must be the same");
-        }
-        if(Math.round(Math.pow(2, variablenames.size())) != factors.size()){
-            if(variablenames.size() != 1 || factors.size() != 2) {
-                throw new IllegalArgumentException("There must be 2^variables number of boolean columns: " +
-                        "variableNames: " + variablenames + ", factors: " + factors + ", factorProbabilities: " + factorProbabilities);
+    Factor(List<String> variableNames,
+           List<List<Boolean>> booleans,
+           List<Float> factors) {
+
+        if(booleans.size() != factors.size()) {
+            if(factors.size() != 1) {
+                throw new IllegalArgumentException("number of probabilities and number of boolean combinations must be the same");
             }
         }
-        for(List<Boolean> bools : factors) {
-            if(bools.size() != variablenames.size()) {
+        if(Math.round(Math.pow(2, variableNames.size())) != booleans.size()){
+            if(variableNames.size() != 1 || booleans.size() != 2) {
+                throw new IllegalArgumentException("There must be 2^variables number of boolean columns: " +
+                        "variableNames: " + variableNames + ", booleans: " + booleans + ", factors: " + factors);
+            }
+        }
+
+        for(List<Boolean> bools : booleans) {
+            if(bools.size() != variableNames.size()) {
                 throw new IllegalArgumentException("There must be as many booleans as there are variables. Problem: " +
                 bools);
             }
         }
 
-        this.variablenames = variablenames;
-        this.factorProbabilities = factorProbabilities;
+        this.variableNames = variableNames;
         this.factors = factors;
+        this.booleans = booleans;
     }
 
-    public List<String> getVariablenames() {
-        return variablenames;
+    public List<String> getVariableNames() {
+        return variableNames;
     }
 
-    public List<List<Boolean>> getFactors() {
+    public List<List<Boolean>> getBooleans() {
+        return booleans;
+    }
+
+    public List<Float> getFactors() {
         return factors;
     }
 
-    public List<Float> getFactorProbabilities() {
-        return factorProbabilities;
-    }
-
     public Factor restrictFactor(String variable, boolean value) {
-        List<Triple<String, List<Boolean>, Float>> newFactor = new ArrayList<Triple<String, List<Boolean>, Float>>();
-        int index = this.variablenames.indexOf(variable);
+        if(getVariableNames().isEmpty()) {
+            return this;
+        }
+
+        int index = getVariableNames().indexOf(variable);
+        if(index == -1) {
+            return this;
+        }
 
         List<String> variablenames = new ArrayList<String>();
         List<List<Boolean>> factors = new ArrayList<List<Boolean>>();
         List<Float> factorProbabilities = new ArrayList<Float>();
 
 
-        for(String name : this.variablenames) {
+        for(String name : getVariableNames()) {
             variablenames.add(name);
         }
         variablenames.remove(index);
 
-        for(int i = 0; i < this.factors.size(); i++) {
-            Float probability = this.factorProbabilities.get(i);
-            List<Boolean> bools = this.factors.get(i);
-
-            //System.out.println("Factor.restrictFactor i : " + index);
-            //System.out.println("Factor.restrictFactor b : " + bools);
-            //System.out.println("Factor.restrictFactor v : " + value);
+        for(int i = 0; i < getBooleans().size(); i++) {
+            Float probability = getFactors().get(i);
+            List<Boolean> bools = getBooleans().get(i);
 
             if(bools.get(index).equals(value)) {
-                //System.out.println("Factor.restrictFactor i : " + index);
-                //System.out.println("Factor.restrictFactor b : " + bools);
-                //System.out.println("Factor.restrictFactor v : " + value);
-
                 List<Boolean> newBools = new ArrayList<Boolean>(bools.size());
                 for(Boolean bool : bools) {
                     newBools.add(bool);
@@ -85,13 +87,17 @@ public class Factor {
         return new Factor(variablenames, factors, factorProbabilities);
     }
 
-    public Factor productFactor(Factor factor2) {
+    public Factor productFactor(Factor secondFactor) {
+        if(getVariableNames().isEmpty()) {
+            return this;
+        }
+
         // generate combination of variables
         Set<String> randomVariablesBetweenTwo = new HashSet<String>();
-        for(String variable : this.variablenames) {
+        for(String variable : getVariableNames()) {
             randomVariablesBetweenTwo.add(variable);
         }
-        for(String variable : factor2.getVariablenames()) {
+        for(String variable : secondFactor.getVariableNames()) {
             randomVariablesBetweenTwo.add(variable);
         }
 
@@ -111,23 +117,23 @@ public class Factor {
             combinationBooleans.add(booleanRow);
         }
 
-        //System.out.println("Factor.productFactor : " + combinationVariables);
-        //System.out.println("Factor.productFactor : " + combinationBooleans);
+        System.out.println("Factor.productFactor : product 1: " + this);
+        System.out.println("Factor.productFactor : product 2: " + secondFactor);
 
-        // multiply the factors. n^2. go through all combination of rows in both table 1 and table 2. match
+        // multiply the booleans. n^2. go through all combination of rows in both table 1 and table 2. match
         // them to the corresponding row in the combination table, and set the value by multiplying them.
-        List<Float> combinationProbabilities = new ArrayList<Float>(combinationBooleans.size());
+        List<Float> combinationFactors = new ArrayList<Float>(combinationBooleans.size());
         for(int i = 0; i < combinationBooleans.size(); i++) {
-            combinationProbabilities.add(0.0f);
+            combinationFactors.add(0.0f);
         }
-        List<String> table1Variables = this.getVariablenames();
-        List<String> table2Variables = factor2.getVariablenames();
-        for(int i = 0; i < this.getFactors().size(); i++) {
-            List<Boolean> booleanRowTable1 = this.getFactors().get(i);
-            Float probability1 = this.getFactorProbabilities().get(i);
-            for(int j = 0; j < factor2.getFactors().size(); j++) {
-                List<Boolean> booleanRowTable2 = this.getFactors().get(j);
-                Float probability2 = factor2.getFactorProbabilities().get(j);
+        List<String> table1Variables = this.getVariableNames();
+        List<String> table2Variables = secondFactor.getVariableNames();
+        for(int i = 0; i < this.getBooleans().size(); i++) {
+            List<Boolean> booleanRowTable1 = this.getBooleans().get(i);
+            Float factor1 = this.getFactors().get(i);
+            for(int j = 0; j < secondFactor.getBooleans().size(); j++) {
+                List<Boolean> booleanRowTable2 = this.getBooleans().get(j);
+                Float factor2 = secondFactor.getFactors().get(j);
 
                 // does this variable and value assignment match the one in BOTH
                 // other rows i have? if so, move on. if all of them match, then multiply
@@ -154,6 +160,9 @@ public class Factor {
                         if(!isRowToAddFactor) break;
 
                         for(int l = 0; l < booleanRowTable2.size(); l++) {
+                            System.out.println("Factor.productFactor : b" + booleanRowTable2);
+                            System.out.println("Factor.productFactor : v" + table2Variables);
+
                             Boolean table2Bool = booleanRowTable2.get(l);
                             String table2Variable = table2Variables.get(l);
 
@@ -164,50 +173,122 @@ public class Factor {
                         } // for table2 row
                     } // for combinationRow1
                     if(isRowToAddFactor) {
-                        //System.out.println("Factor.product value: " + probability1 * probability2);
-                        //System.out.println("Factor.product booleanRowTable1: " + booleanRowTable1);
-                        //System.out.println("Factor.product table1Variables: " + table1Variables);
-                        //System.out.println("Factor.product booleanRowTable2: " + booleanRowTable2);
-                        //System.out.println("Factor.product table2Variables: " + table2Variables);
-                        //System.out.println("Factor.product combinationRow1: " + combinationRow1);
-                        //System.out.println("F==============================================F");
-
-                        combinationProbabilities.set(x, probability1 * probability2);
+                        combinationFactors.set(x, factor1 * factor2);
                     }
                 } // for combinationBooleans
-            } // for table2 factors
-        } // for table 1 factors
+            } // for table2 booleans
+        } // for table 1 booleans
 
-        //System.out.println("Factor.productFactor : " + combinationProbabilities);
-        return new Factor(combinationVariables, combinationBooleans, combinationProbabilities);
+        return new Factor(combinationVariables, combinationBooleans, combinationFactors);
     }
 
     public Factor sumout(String variable) {
+        if(getVariableNames().isEmpty()) {
+            return this;
+        }
+
         Factor restrictFactorTrue = this.restrictFactor(variable, true);
         Factor restrictFactorFalse = this.restrictFactor(variable, false);
 
-        List<Float> restrictFactorTrueProbabilities = restrictFactorTrue.getFactorProbabilities();
-        List<Float> restrictFactorFalseProbabilities = restrictFactorFalse.getFactorProbabilities();
+        List<Float> restrictFactorTrueProbabilities = restrictFactorTrue.getFactors();
+        List<Float> restrictFactorFalseProbabilities = restrictFactorFalse.getFactors();
 
         assert restrictFactorTrueProbabilities.size() == restrictFactorFalseProbabilities.size();
 
         List<Float> sumoutProbabilities = new ArrayList<Float>();
         for(int i = 0; i < restrictFactorTrueProbabilities.size(); i++) {
-            Float probability1 = restrictFactorTrueProbabilities.get(i);
-            Float probability2 = restrictFactorFalseProbabilities.get(i);
+            Float factor1 = restrictFactorTrueProbabilities.get(i);
+            Float factor2 = restrictFactorFalseProbabilities.get(i);
 
-            sumoutProbabilities.add(probability1+probability2);
+            sumoutProbabilities.add(factor1+factor2);
         }
 
-        return new Factor(restrictFactorTrue.getVariablenames(), restrictFactorTrue.getFactors(), sumoutProbabilities);
+        return new Factor(restrictFactorTrue.getVariableNames(), restrictFactorTrue.getBooleans(), sumoutProbabilities);
+    }
+
+    public Factor normalize() {
+        float sum = 0;
+        for(Float factor : this.getFactors()) {
+            sum += factor;
+        }
+        List<Float> newFactors = new ArrayList<Float>(this.getFactors().size());
+        for(Float factor : this.getFactors()) {
+            newFactors.add(factor / sum);
+        }
+        return new Factor(this.getVariableNames(), this.getBooleans(), newFactors);
+    }
+
+    public static Factor inference(List<Factor> factorList,
+                            List<String> queryVariables,
+                            List<String> orderedListOfHiddenVariables,
+                            List<Evidence> evidenceList) {
+
+        // restrict the factors in factorList using the evidence in evidenceList
+        List<Factor> restrictedFactorList = new ArrayList<Factor>();
+        for(Evidence evidence : evidenceList) {
+            String variable = evidence.getVariable();
+            Boolean value = evidence.getValue();
+
+            for(Factor factor : factorList) {
+                Factor restrictedFactor = factor.restrictFactor(variable, value);
+                restrictedFactorList.add(restrictedFactor);
+            }
+        }
+        factorList = restrictedFactorList;
+
+        for(String hiddenVariable : orderedListOfHiddenVariables) {
+            // compute the product of all the factors in factorList that contain this variable
+            List<Integer> indexesOfFactorsToSum = new ArrayList<Integer>();
+            for(int i = 0; i < factorList.size(); i++) {
+                Factor restrictedFactor = factorList.get(i);
+                if(restrictedFactor.isVariableInFactor(hiddenVariable)) {
+                    indexesOfFactorsToSum.add(i);
+                }
+            }
+            if(indexesOfFactorsToSum.isEmpty()) {
+                System.out.println("Is something wrong here?");
+                continue;
+            }
+            Factor factorBeingMultiplied = factorList.get(indexesOfFactorsToSum.get(0));
+            for(int i = 1; i < indexesOfFactorsToSum.size(); i++) {
+                if(i >= indexesOfFactorsToSum.size()) break;
+                Integer index = indexesOfFactorsToSum.get(i);
+                factorBeingMultiplied = factorBeingMultiplied.productFactor(factorList.get(index));
+            }
+
+            System.out.println("Factor.inference indexesSummed: " + indexesOfFactorsToSum);
+
+            //remove all the factors we just took the product of from factorList
+            for(Integer index : indexesOfFactorsToSum) {
+                factorList.remove(index);
+            }
+
+            // sum out the variable
+            Factor summedFactor = factorBeingMultiplied.sumout(hiddenVariable);
+
+            // add the resulting factor back to factorList
+            factorList.add(summedFactor);
+        }
+
+        assert(factorList.size() == 1);
+        System.out.println("Factor.inference : " + factorList);
+        return factorList.get(0);
+    }
+
+    private boolean isVariableInFactor(String checkVariable) {
+        for(String variable : getVariableNames()) {
+            if(variable.equals(checkVariable))
+                return true;
+        }
+        return false;
     }
 
     @Override
     public String toString() {
         return "Factor{" +
-                "variablenames=" + variablenames +
+                "variableNames=" + variableNames +
+                ", booleans=" + booleans +
                 ", factors=" + factors +
-                ", factorProbabilities=" + factorProbabilities +
                 '}';
     }
 }
