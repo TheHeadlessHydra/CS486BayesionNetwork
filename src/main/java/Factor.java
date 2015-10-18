@@ -185,7 +185,21 @@ public class Factor {
     public Factor sumout(String variable) {
         Factor restrictFactorTrue = this.restrictFactor(variable, true);
         Factor restrictFactorFalse = this.restrictFactor(variable, false);
-        return restrictFactorTrue.productFactor(restrictFactorFalse);
+
+        List<Float> restrictFactorTrueProbabilities = restrictFactorTrue.getFactorProbabilities();
+        List<Float> restrictFactorFalseProbabilities = restrictFactorFalse.getFactorProbabilities();
+
+        assert restrictFactorTrueProbabilities.size() == restrictFactorFalseProbabilities.size();
+
+        List<Float> sumoutProbabilities = new ArrayList<Float>();
+        for(int i = 0; i < restrictFactorTrueProbabilities.size(); i++) {
+            Float probability1 = restrictFactorTrueProbabilities.get(i);
+            Float probability2 = restrictFactorFalseProbabilities.get(i);
+
+            sumoutProbabilities.add(probability1+probability2);
+        }
+
+        return new Factor(restrictFactorTrue.getVariablenames(), restrictFactorTrue.getFactors(), sumoutProbabilities);
     }
 
     @Override

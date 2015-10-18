@@ -59,7 +59,8 @@ public class BayesionNetwork {
         Factor example1CombinationFactor = example1Factor1.productFactor(example1Factor2);
         System.out.println("BayesionNetwork.main : " + example1CombinationFactor);
 
-        Factor example1SumOutB = example1CombinationFactor.productFactor(example1Factor2);
+        Factor example1SumOutB = example1CombinationFactor.sumout("B");
+        System.out.println("BayesionNetwork.main SUMOUT: " + example1SumOutB);
 
     }
 
